@@ -8,7 +8,7 @@ import ast
 
 SKIPPED_WORDS = ["None", "be"]
 MILD_BOOSTER_WORDS = ["absolutely", "very", "really", "total", "totally", "especially", "definitely", "complete", "completely"]
-STRONG_BOOSTER_WORDS = ["extremely", "fuckin", "fucking", "hugely", "incredibly", "overwhelmingly", ]
+STRONG_BOOSTER_WORDS = ["extremely", "fuckin", "fucking", "hugely", "incredibly", "overwhelmingly"]
 
 
 def open_file(file, type):
@@ -113,15 +113,15 @@ def calculate_vad_scores_for_opinions(raw_df):
                             rela_d.append(df[words + "_d"][i][k])
                         k+=1
         if len(opin_v) != 0:
-            new_v = float(format(sum(opin_v)/len(opin_v), '.2f'))
-            new_a = float(format(sum(opin_a) / len(opin_a), '.2f'))
-            new_d = float(format(sum(opin_d) / len(opin_d), '.2f'))
-            opin_scores.append((new_v, new_a, new_d))
+            new_ov = float(format(sum(opin_v)/len(opin_v), '.2f'))
+            new_oa = float(format(sum(opin_a) / len(opin_a), '.2f'))
+            new_od = float(format(sum(opin_d) / len(opin_d), '.2f'))
+            opin_scores.append((new_ov, new_oa, new_od))
         if len(rela_v) != 0:
-            new_v = float(format(sum(rela_v)/len(rela_v), '.2f'))
-            new_a = float(format(sum(rela_a) / len(rela_a), '.2f'))
-            new_d = float(format(sum(rela_d) / len(rela_d), '.2f'))
-            related_scores.append((new_v, new_a, new_d))
+            new_rv = float(format(sum(rela_v)/len(rela_v), '.2f'))
+            new_ra = float(format(sum(rela_a) / len(rela_a), '.2f'))
+            new_rd = float(format(sum(rela_d) / len(rela_d), '.2f'))
+            related_scores.append((new_rv, new_ra, new_rd))
 
     df_oscores = pd.DataFrame.from_records(opin_scores, columns=("opin_new_v", "opin_new_a", "opin_new_d"))
     df_rscores = pd.DataFrame.from_records(related_scores, columns=("rela_new_v", "rela_new_a", "rela_new_d"))
