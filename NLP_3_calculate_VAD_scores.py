@@ -9,7 +9,8 @@ import ast
 SKIPPED_WORDS = ["None", "be"]
 MILD_BOOSTER_WORDS = ["absolutely", "very", "really", "total", "totally", "especially", "definitely", "complete", "completely"]
 STRONG_BOOSTER_WORDS = ["extremely", "fuckin", "fucking", "hugely", "incredibly", "overwhelmingly"]
-
+NEGATION_WORDS = ["not"]
+SKIPPED_WORDS = ["None", "be"]
 
 def open_file(file, type):
     if type == "warriner":
@@ -59,6 +60,23 @@ def booster_modification(booster_score, word_score):
         word_score = word_score + booster_score
     return word_score
 
+
+def negation_modification(negation_word, word_score):
+    """This assigns opposite polarity to a sentence containing
+    a negation modifier"""
+    # With the presence of a single negation modifier, this step
+    # is a bit redundant, but it will give easier time to expand it.
+    if negation_word == "not":
+        if word_score <= 4:
+            print(word_score)
+            word_score = float(format(word_score + (2 *(5 - word_score)), '.2f'))
+            print(word_score)
+        elif word_score >= 6:
+            print(word_score)
+            word_score = float(format(word_score - (2 *(word_score - 5)), '.2f'))
+            print(word_score)
+    return word_score
+
 def calculate_vad_scores_for_nouns(raw_df):
     pass
 
@@ -93,12 +111,16 @@ def calculate_vad_scores_for_opinions(raw_df):
                         df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
                         df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
                         df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
+                    elif df[words][i][j] in NEGATION_WORDS:
+                        df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
+                        df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
+                        df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
                     j += 1
                 if words == "opinion":
                     k = 0
                     while k < len(df[words][i]):
                         print(df[words][i][k])
-                        if df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS:
+                        if (df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS + NEGATION_WORDS + SKIPPED_WORDS):
                             opin_v.append(df[words + "_v"][i][k])
                             opin_a.append(df[words + "_a"][i][k])
                             opin_d.append(df[words + "_d"][i][k])
@@ -107,7 +129,7 @@ def calculate_vad_scores_for_opinions(raw_df):
                     k = 0
                     while k < len(df[words][i]):
                         print(df[words][i][k])
-                        if df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS:
+                        if (df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS + NEGATION_WORDS + SKIPPED_WORDS):
                             rela_v.append(df[words + "_v"][i][k])
                             rela_a.append(df[words + "_a"][i][k])
                             rela_d.append(df[words + "_d"][i][k])
