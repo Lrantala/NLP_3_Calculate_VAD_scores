@@ -54,9 +54,9 @@ def read_folder_contents(path_to_files):
 
 
 def booster_modification(booster_score, word_score):
-    if word_score <= 4:
+    if word_score <= 5:
         word_score = word_score - booster_score
-    elif word_score >= 6:
+    elif word_score >= 5:
         word_score = word_score + booster_score
     return word_score
 
@@ -67,11 +67,11 @@ def negation_modification(negation_word, word_score):
     # With the presence of a single negation modifier, this step
     # is a bit redundant, but it will give easier time to expand it.
     if negation_word == "not":
-        if word_score <= 4:
+        if word_score <= 5:
             print(word_score)
             word_score = float(format(word_score + (2 *(5 - word_score)), '.2f'))
             print(word_score)
-        elif word_score >= 6:
+        elif word_score >= 5:
             print(word_score)
             word_score = float(format(word_score - (2 *(word_score - 5)), '.2f'))
             print(word_score)
