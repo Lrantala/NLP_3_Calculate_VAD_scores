@@ -149,7 +149,7 @@ def calculate_vad_scores_as_mean_for_opinions_separately(raw_df):
                             rela_a.append(df[words + "_a"][i][k])
                             rela_d.append(df[words + "_d"][i][k])
                         k+=1
-        #Error here. This counts means for opinions and related separately. They should be combined.
+        #This counts means for opinions and related separately. They should be combined.
         if len(opin_v) != 0:
             new_ov = float(format(sum(opin_v)/len(opin_v), '.2f'))
             new_oa = float(format(sum(opin_a) / len(opin_a), '.2f'))
@@ -174,7 +174,7 @@ def calculate_vad_scores_as_mean_for_opinions_separately(raw_df):
     return df
 
 
-def calculate_vad_scores_1_as_mean_for_aspects(raw_df):
+def calculate_vad_scores_1(raw_df):
     """This counts the aspect score as the mean of the opinionated and related scores.
     It takes into account the base noun scores."""
     logging.debug("Entering calculate new vad scores 1 for aspects.")
@@ -227,7 +227,7 @@ def calculate_vad_scores_1_as_mean_for_aspects(raw_df):
     return df
 
 
-def calculate_vad_scores_2_as_mean_for_aspects(raw_df):
+def calculate_vad_scores_2(raw_df):
     """This counts the aspect score as the mean of the opinionated and related scores.
     It does not take into account the base noun scores."""
     logging.debug("Entering calculate new vad scores 1 for aspects.")
@@ -279,6 +279,101 @@ def calculate_vad_scores_2_as_mean_for_aspects(raw_df):
     logging.debug("Time: %.2f seconds" % (end - start))
     return df
 
+
+def calculate_vad_scores_4(raw_df):
+    """This counts the aspect score as the mean of the opinionated and related scores,
+    but only taking into account the most polarized scores from them. It does no take
+    into account the base noun scores."""
+    logging.debug("Entering calculate new vad scores 4 for aspects.")
+    df = raw_df
+    opin_scores = []
+    related_scores = []
+    start = timer()
+    opinion_related = ["opinion", "related"]
+    for i, phrase in enumerate(df["aspect"]):
+        opin_v = []
+        opin_a = []
+        opin_d = []
+        rela_v = []
+        rela_a = []
+        rela_d = []
+        for words in opinion_related:
+            if len(df[words][i]) != 0:
+                j = 0
+                while j+1 < len(df[words][i]):
+                    if df[words][i][j] in MILD_BOOSTER_WORDS:
+                        df[words + "_v"][i][j+1] = booster_modification(0.5, df[words + "_v"][i][j+1])
+                        df[words + "_a"][i][j+1] = booster_modification(0.5, df[words + "_a"][i][j+1])
+                        df[words + "_d"][i][j+1] = booster_modification(0.5, df[words + "_d"][i][j+1])
+                    elif df[words][i][j] in STRONG_BOOSTER_WORDS:
+                        df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
+                        df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
+                        df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
+                    elif df[words][i][j] in NEGATION_WORDS:
+                        df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
+                        df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
+                        df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
+                    j += 1
+                if words == "opinion":
+                    k = 0
+                    while k < len(df[words][i]):
+                        if (df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS + NEGATION_WORDS + SKIPPED_WORDS):
+                            opin_v.append(df[words + "_v"][i][k])
+                            opin_a.append(df[words + "_a"][i][k])
+                            opin_d.append(df[words + "_d"][i][k])
+                        k+=1
+                else:
+                    k = 0
+                    while k < len(df[words][i]):
+                        if (df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS + NEGATION_WORDS + SKIPPED_WORDS):
+                            rela_v.append(df[words + "_v"][i][k])
+                            rela_a.append(df[words + "_a"][i][k])
+                            rela_d.append(df[words + "_d"][i][k])
+                        k+=1
+        v_assign = False
+        if len(opin_v) == 0:
+            new_ov = max(rela_v, key=lambda x: abs(x - 5))
+            v_assign = True
+        if len(rela_v) == 0:
+            new_ov = max(opin_v, key=lambda x: abs(x - 5))
+            v_assign = True
+        if v_assign is False:
+            rela_max_polar = max(rela_v, key=lambda x: abs(x - 5))
+            opin_max_polar = max(opin_v, key=lambda x: abs(x - 5))
+            new_ov = float(format((rela_max_polar + opin_max_polar) / 2 , '.2f'))
+
+        a_assign = False
+        if len(opin_a) == 0:
+            new_oa = max(rela_a, key=lambda x: abs(x - 5))
+            a_assign = True
+        if len(rela_a) == 0:
+            new_oa = max(opin_a, key=lambda x: abs(x - 5))
+            a_assign = True
+        if a_assign is False:
+            rela_max_polar = max(rela_a, key=lambda x: abs(x - 5))
+            opin_max_polar = max(opin_a, key=lambda x: abs(x - 5))
+            new_oa = float(format((rela_max_polar + opin_max_polar) / 2, '.2f'))
+
+        d_assign = False
+        if len(opin_d) == 0:
+            new_od = max(rela_d, key=lambda x: abs(x - 5))
+            d_assign = True
+        if len(rela_d) == 0:
+            new_od = max(opin_d, key=lambda x: abs(x - 5))
+            d_assign = True
+        if d_assign is False:
+            rela_max_polar = max(rela_d, key=lambda x: abs(x - 5))
+            opin_max_polar = max(opin_d, key=lambda x: abs(x - 5))
+            new_od = float(format((rela_max_polar + opin_max_polar) / 2, '.2f'))
+        opin_scores.append((new_ov, new_oa, new_od))
+
+
+    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v", "aspect_new_a", "aspect_new_d"))
+    df = pd.concat([df, df_ascores], axis=1, sort=False)
+    end = timer()
+    logging.debug("Time: %.2f seconds" % (end - start))
+    return df
+
 def return_sys_arguments(args):
     if len(args) == 2:
         return args[1]
@@ -287,10 +382,10 @@ def return_sys_arguments(args):
 
 
 def main(df_part, name):
-    df_vad_scores = calculate_vad_scores_1_as_mean_for_aspects(df_part)
+    df_vad_scores = calculate_vad_scores_4(df_part)
     # df_vad_scores = calculate_vad_scores_as_mean_for_opinions(df_part)
     # df_vad_scores = calculate_vad_scores_as_mean_for_nouns(df_vad_scores)
-    save_file(df_vad_scores, name + "_CALCULATED_R")
+    save_file(df_vad_scores, name + "4_CALCULATED_R")
     # result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
     # result = separate_individual_words(result, True)
 
