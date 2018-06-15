@@ -54,11 +54,12 @@ def read_folder_contents(path_to_files):
 
 
 def booster_modification(booster_score, word_score):
-    if word_score <= 5:
-        word_score = word_score - booster_score
-    elif word_score >= 5:
-        word_score = word_score + booster_score
-    return word_score
+    booster_word = word_score
+    if booster_word <= 5:
+        booster_word = float(format(word_score - booster_score, '.2f'))
+    elif booster_word >= 5:
+        booster_word = float(format(word_score + booster_score, '.2f'))
+    return booster_word
 
 
 def negation_modification(negation_word, word_score):
@@ -66,12 +67,13 @@ def negation_modification(negation_word, word_score):
     a negation modifier"""
     # With the presence of a single negation modifier, this step
     # is a bit redundant, but it will give easier time to expand it.
+    negation_score = word_score
     if negation_word == "not":
-        if word_score <= 5:
-            word_score = float(format(word_score + (2 *(5 - word_score)), '.2f'))
-        elif word_score >= 5:
-            word_score = float(format(word_score - (2 *(word_score - 5)), '.2f'))
-    return word_score
+        if negation_score <= 5:
+            negation_score = float(format(word_score + (2 *(5 - word_score)), '.2f'))
+        elif negation_score >= 5:
+            negation_score = float(format(word_score - (2 *(word_score - 5)), '.2f'))
+    return negation_score
 
 def calculate_vad_scores_as_mean_for_nouns(raw_df):
     logging.debug("Entering calculate new vad scores for noun phrases.")
@@ -220,7 +222,7 @@ def calculate_vad_scores_1(raw_df):
         if len(opin_v) == 0:
             opin_scores.append((0, 0, 0))
 
-    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v", "aspect_new_a", "aspect_new_d"))
+    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v1", "aspect_new_a1", "aspect_new_d1"))
     df = pd.concat([df, df_ascores], axis=1, sort=False)
     end = timer()
     logging.debug("Time: %.2f seconds" % (end - start))
@@ -230,7 +232,7 @@ def calculate_vad_scores_1(raw_df):
 def calculate_vad_scores_2(raw_df):
     """This counts the aspect score as the mean of the opinionated and related scores.
     It does not take into account the base noun scores."""
-    logging.debug("Entering calculate new vad scores 1 for aspects.")
+    logging.debug("Entering calculate new vad scores 2 for aspects.")
     df = raw_df
     opin_scores = []
     start = timer()
@@ -258,13 +260,13 @@ def calculate_vad_scores_2(raw_df):
                         df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
                         df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
                     j += 1
-                k = 0
-                while k < len(df[words][i]):
-                    if (df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS + NEGATION_WORDS + SKIPPED_WORDS):
-                        opin_v.append(df[words + "_v"][i][k])
-                        opin_a.append(df[words + "_a"][i][k])
-                        opin_d.append(df[words + "_d"][i][k])
-                    k+=1
+                    k = 0
+                    while k < len(df[words][i]):
+                        if (df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS + NEGATION_WORDS + SKIPPED_WORDS):
+                            opin_v.append(df[words + "_v"][i][k])
+                            opin_a.append(df[words + "_a"][i][k])
+                            opin_d.append(df[words + "_d"][i][k])
+                        k+=1
         if len(opin_v) != 0:
             new_ov = float(format(sum(opin_v)/len(opin_v), '.2f'))
             new_oa = float(format(sum(opin_a) / len(opin_a), '.2f'))
@@ -273,7 +275,7 @@ def calculate_vad_scores_2(raw_df):
         if len(opin_v) == 0:
             opin_scores.append((0, 0, 0))
 
-    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v", "aspect_new_a", "aspect_new_d"))
+    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v2", "aspect_new_a2", "aspect_new_d2"))
     df = pd.concat([df, df_ascores], axis=1, sort=False)
     end = timer()
     logging.debug("Time: %.2f seconds" % (end - start))
@@ -411,7 +413,7 @@ def calculate_vad_scores_3(raw_df):
 
         opin_scores.append((new_ov, new_oa, new_od))
 
-    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v", "aspect_new_a", "aspect_new_d"))
+    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v3", "aspect_new_a3", "aspect_new_d3"))
     df = pd.concat([df, df_ascores], axis=1, sort=False)
     end = timer()
     logging.debug("Time: %.2f seconds" % (end - start))
@@ -470,10 +472,15 @@ def calculate_vad_scores_4(raw_df):
                         k+=1
         v_assign = False
         if len(opin_v) == 0:
-            new_ov = max(rela_v, key=lambda x: abs(x - 5))
-            v_assign = True
+            if len(rela_v) != 0:
+                new_ov = max(rela_v, key=lambda x: abs(x - 5))
+                v_assign = True
         if len(rela_v) == 0:
-            new_ov = max(opin_v, key=lambda x: abs(x - 5))
+            if len(opin_v) != 0:
+                new_ov = max(opin_v, key=lambda x: abs(x - 5))
+                v_assign = True
+        if len(rela_v) == 0 and len(opin_v) == 0:
+            new_ov = 5.0
             v_assign = True
         if v_assign is False:
             rela_max_polar = max(rela_v, key=lambda x: abs(x - 5))
@@ -482,11 +489,17 @@ def calculate_vad_scores_4(raw_df):
 
         a_assign = False
         if len(opin_a) == 0:
-            new_oa = max(rela_a, key=lambda x: abs(x - 5))
-            a_assign = True
+            if len(rela_a) != 0:
+                new_oa = max(rela_a, key=lambda x: abs(x - 5))
+                a_assign = True
         if len(rela_a) == 0:
-            new_oa = max(opin_a, key=lambda x: abs(x - 5))
+            if len(opin_a) != 0:
+                new_oa = max(opin_a, key=lambda x: abs(x - 5))
+                a_assign = True
+        if len(rela_a) == 0 and len(opin_a) == 0:
+            new_oa = 5.0
             a_assign = True
+
         if a_assign is False:
             rela_max_polar = max(rela_a, key=lambda x: abs(x - 5))
             opin_max_polar = max(opin_a, key=lambda x: abs(x - 5))
@@ -494,18 +507,24 @@ def calculate_vad_scores_4(raw_df):
 
         d_assign = False
         if len(opin_d) == 0:
-            new_od = max(rela_d, key=lambda x: abs(x - 5))
-            d_assign = True
+            if len(rela_d) != 0:
+                new_od = max(rela_d, key=lambda x: abs(x - 5))
+                d_assign = True
         if len(rela_d) == 0:
-            new_od = max(opin_d, key=lambda x: abs(x - 5))
+            if len(opin_d) != 0:
+                new_od = max(opin_d, key=lambda x: abs(x - 5))
+                d_assign = True
+        if len(rela_d) == 0 and len(opin_d) == 0:
+            new_od = 5.0
             d_assign = True
+
         if d_assign is False:
             rela_max_polar = max(rela_d, key=lambda x: abs(x - 5))
             opin_max_polar = max(opin_d, key=lambda x: abs(x - 5))
             new_od = float(format((rela_max_polar + opin_max_polar) / 2, '.2f'))
         opin_scores.append((new_ov, new_oa, new_od))
 
-    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v", "aspect_new_a", "aspect_new_d"))
+    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v4", "aspect_new_a4", "aspect_new_d4"))
     df = pd.concat([df, df_ascores], axis=1, sort=False)
     end = timer()
     logging.debug("Time: %.2f seconds" % (end - start))
@@ -519,10 +538,13 @@ def return_sys_arguments(args):
 
 
 def main(df_part, name):
-    df_vad_scores = calculate_vad_scores_3(df_part)
+    df_vad_scores = calculate_vad_scores_1(df_part)
+    df_vad_scores = calculate_vad_scores_2(df_vad_scores)
+    df_vad_scores = calculate_vad_scores_3(df_vad_scores)
+    df_vad_scores = calculate_vad_scores_4(df_vad_scores)
     # df_vad_scores = calculate_vad_scores_as_mean_for_opinions(df_part)
     # df_vad_scores = calculate_vad_scores_as_mean_for_nouns(df_vad_scores)
-    save_file(df_vad_scores, name + "3_CALCULATED_R")
+    save_file(df_vad_scores, name + "COMB_VAD_R")
     # result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
     # result = separate_individual_words(result, True)
 
