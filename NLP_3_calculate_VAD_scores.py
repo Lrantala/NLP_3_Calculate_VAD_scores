@@ -255,7 +255,7 @@ def calculate_vad_scores_1(raw_df):
         if len(opin_v) == 0:
             opin_scores.append((0, 0, 0))
 
-    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v1", "aspect_new_a1", "aspect_new_d1"))
+    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_v1", "aspect_a1", "aspect_d1"))
     df = pd.concat([df, df_ascores], axis=1, sort=False)
     end = timer()
     logging.debug("Time: %.2f seconds" % (end - start))
@@ -308,7 +308,7 @@ def calculate_vad_scores_2(raw_df):
         if len(opin_v) == 0:
             opin_scores.append((0, 0, 0))
 
-    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v2", "aspect_new_a2", "aspect_new_d2"))
+    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_v2", "aspect_a2", "aspect_d2"))
     df = pd.concat([df, df_ascores], axis=1, sort=False)
     end = timer()
     logging.debug("Time: %.2f seconds" % (end - start))
@@ -446,7 +446,7 @@ def calculate_vad_scores_3(raw_df):
 
         opin_scores.append((new_ov, new_oa, new_od))
 
-    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v3", "aspect_new_a3", "aspect_new_d3"))
+    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_v3", "aspect_a3", "aspect_d3"))
     df = pd.concat([df, df_ascores], axis=1, sort=False)
     end = timer()
     logging.debug("Time: %.2f seconds" % (end - start))
@@ -557,7 +557,7 @@ def calculate_vad_scores_4(raw_df):
             new_od = float(format((rela_max_polar + opin_max_polar) / 2, '.2f'))
         opin_scores.append((new_ov, new_oa, new_od))
 
-    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_new_v4", "aspect_new_a4", "aspect_new_d4"))
+    df_ascores = pd.DataFrame.from_records(opin_scores, columns=("aspect_v4", "aspect_a4", "aspect_d4"))
     df = pd.concat([df, df_ascores], axis=1, sort=False)
     end = timer()
     logging.debug("Time: %.2f seconds" % (end - start))
@@ -569,6 +569,11 @@ def return_sys_arguments(args):
     else:
         return None
 
+
+def reformat_output_file(raw_df):
+    df = raw_df[
+        ['aspect', 'opinion', "aspect_v1", "aspect_v2", "aspect_v3", "aspect_v4", "aspect_a1", "aspect_a2", "aspect_a3", "aspect_a4", "aspect_d1",  "aspect_d2", "aspect_d3", "aspect_d4",'original_text']]
+    return df
 
 def main(df_part, name):
     df_vad_scores = make_booster_modifications_before_calculation(df_part)
@@ -582,7 +587,8 @@ def main(df_part, name):
     # result2 = pd.concat([df_vad_scores3, df_vad_scores4], axis=1, sort=False)
     # result3 = pd.concat([result1, result2], axis=1, sort=False)
     # result = separate_individual_words(result, True)
-    save_file(df_vad_scores, name + "COMB_VAD_R")
+    printable_table = reformat_output_file(df_vad_scores)
+    save_file(printable_table, name + "COMB_VAD_R")
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
