@@ -176,6 +176,39 @@ def calculate_vad_scores_as_mean_for_opinions_separately(raw_df):
     return df
 
 
+def make_booster_modifications_before_calculation(raw_df):
+    logging.debug("Entering make booster modifications.")
+    df = raw_df
+    opin_scores = []
+    start = timer()
+    opinion_related = ["opinion", "related"]
+    for i, phrase in enumerate(df["aspect"]):
+        opin_v = []
+        opin_a = []
+        opin_d = []
+        for words in opinion_related:
+            if len(df[words][i]) != 0:
+                j = 0
+                while j + 1 < len(df[words][i]):
+                    if df[words][i][j] in MILD_BOOSTER_WORDS:
+                        df[words + "_v"][i][j + 1] = booster_modification(0.5, df[words + "_v"][i][j + 1])
+                        df[words + "_a"][i][j + 1] = booster_modification(0.5, df[words + "_a"][i][j + 1])
+                        df[words + "_d"][i][j + 1] = booster_modification(0.5, df[words + "_d"][i][j + 1])
+                        # Dangerous. Pops out a value. Works, but can mess things up royally.
+                        # df[words + "_v"][i].pop(j)
+                    elif df[words][i][j] in STRONG_BOOSTER_WORDS:
+                        df[words + "_v"][i][j + 1] = booster_modification(1, df[words + "_v"][i][j + 1])
+                        df[words + "_a"][i][j + 1] = booster_modification(1, df[words + "_a"][i][j + 1])
+                        df[words + "_d"][i][j + 1] = booster_modification(1, df[words + "_d"][i][j + 1])
+                    elif df[words][i][j] in NEGATION_WORDS:
+                        df[words + "_v"][i][j + 1] = negation_modification(df[words][i][j], df[words + "_v"][i][j + 1])
+                        df[words + "_a"][i][j + 1] = negation_modification(df[words][i][j], df[words + "_a"][i][j + 1])
+                        df[words + "_d"][i][j + 1] = negation_modification(df[words][i][j], df[words + "_d"][i][j + 1])
+                    j += 1
+    end = timer()
+    logging.debug("Time: %.2f seconds" % (end - start))
+    return df
+
 def calculate_vad_scores_1(raw_df):
     """This counts the aspect score as the mean of the opinionated and related scores.
     It takes into account the base noun scores."""
@@ -190,23 +223,23 @@ def calculate_vad_scores_1(raw_df):
         opin_d = []
         for words in opinion_related:
             if len(df[words][i]) != 0:
-                j = 0
-                while j+1 < len(df[words][i]):
-                    if df[words][i][j] in MILD_BOOSTER_WORDS:
-                        df[words + "_v"][i][j+1] = booster_modification(0.5, df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = booster_modification(0.5, df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = booster_modification(0.5, df[words + "_d"][i][j+1])
-                        # Dangerous. Pops out a value. Works, but can mess things up royally.
-                        # df[words + "_v"][i].pop(j)
-                    elif df[words][i][j] in STRONG_BOOSTER_WORDS:
-                        df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
-                    elif df[words][i][j] in NEGATION_WORDS:
-                        df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
-                    j += 1
+                # j = 0
+                # while j+1 < len(df[words][i]):
+                #     if df[words][i][j] in MILD_BOOSTER_WORDS:
+                #         df[words + "_v"][i][j+1] = booster_modification(0.5, df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = booster_modification(0.5, df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = booster_modification(0.5, df[words + "_d"][i][j+1])
+                #         # Dangerous. Pops out a value. Works, but can mess things up royally.
+                #         # df[words + "_v"][i].pop(j)
+                #     elif df[words][i][j] in STRONG_BOOSTER_WORDS:
+                #         df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
+                #     elif df[words][i][j] in NEGATION_WORDS:
+                #         df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
+                #     j += 1
                 k = 0
                 while k < len(df[words][i]):
                     if (df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS + NEGATION_WORDS + SKIPPED_WORDS):
@@ -243,30 +276,30 @@ def calculate_vad_scores_2(raw_df):
         opin_d = []
         for words in opinion_related:
             if len(df[words][i]) != 0:
-                j = 0
-                while j+1 < len(df[words][i]):
-                    if df[words][i][j] in MILD_BOOSTER_WORDS:
-                        df[words + "_v"][i][j+1] = booster_modification(0.5, df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = booster_modification(0.5, df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = booster_modification(0.5, df[words + "_d"][i][j+1])
-                        # Dangerous. Pops out a value. Works, but can mess things up royally.
-                        # df[words + "_v"][i].pop(j)
-                    elif df[words][i][j] in STRONG_BOOSTER_WORDS:
-                        df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
-                    elif df[words][i][j] in NEGATION_WORDS:
-                        df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
-                    j += 1
-                    k = 0
-                    while k < len(df[words][i]):
-                        if (df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS + NEGATION_WORDS + SKIPPED_WORDS):
-                            opin_v.append(df[words + "_v"][i][k])
-                            opin_a.append(df[words + "_a"][i][k])
-                            opin_d.append(df[words + "_d"][i][k])
-                        k+=1
+                # j = 0
+                # while j+1 < len(df[words][i]):
+                #     if df[words][i][j] in MILD_BOOSTER_WORDS:
+                #         df[words + "_v"][i][j+1] = booster_modification(0.5, df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = booster_modification(0.5, df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = booster_modification(0.5, df[words + "_d"][i][j+1])
+                #         # Dangerous. Pops out a value. Works, but can mess things up royally.
+                #         # df[words + "_v"][i].pop(j)
+                #     elif df[words][i][j] in STRONG_BOOSTER_WORDS:
+                #         df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
+                #     elif df[words][i][j] in NEGATION_WORDS:
+                #         df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
+                #     j += 1
+                k = 0
+                while k < len(df[words][i]):
+                    if (df[words][i][k] not in MILD_BOOSTER_WORDS + STRONG_BOOSTER_WORDS + NEGATION_WORDS + SKIPPED_WORDS):
+                        opin_v.append(df[words + "_v"][i][k])
+                        opin_a.append(df[words + "_a"][i][k])
+                        opin_d.append(df[words + "_d"][i][k])
+                    k+=1
         if len(opin_v) != 0:
             new_ov = float(format(sum(opin_v)/len(opin_v), '.2f'))
             new_oa = float(format(sum(opin_a) / len(opin_a), '.2f'))
@@ -304,21 +337,21 @@ def calculate_vad_scores_3(raw_df):
         aspe_d = []
         for words in opinion_related:
             if len(df[words][i]) != 0:
-                j = 0
-                while j+1 < len(df[words][i]):
-                    if df[words][i][j] in MILD_BOOSTER_WORDS:
-                        df[words + "_v"][i][j+1] = booster_modification(0.5, df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = booster_modification(0.5, df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = booster_modification(0.5, df[words + "_d"][i][j+1])
-                    elif df[words][i][j] in STRONG_BOOSTER_WORDS:
-                        df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
-                    elif df[words][i][j] in NEGATION_WORDS:
-                        df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
-                    j += 1
+                # j = 0
+                # while j+1 < len(df[words][i]):
+                #     if df[words][i][j] in MILD_BOOSTER_WORDS:
+                #         df[words + "_v"][i][j+1] = booster_modification(0.5, df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = booster_modification(0.5, df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = booster_modification(0.5, df[words + "_d"][i][j+1])
+                #     elif df[words][i][j] in STRONG_BOOSTER_WORDS:
+                #         df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
+                #     elif df[words][i][j] in NEGATION_WORDS:
+                #         df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
+                #     j += 1
                 if words == "opinion":
                     k = 0
                     while k < len(df[words][i]):
@@ -439,21 +472,21 @@ def calculate_vad_scores_4(raw_df):
         rela_d = []
         for words in opinion_related:
             if len(df[words][i]) != 0:
-                j = 0
-                while j+1 < len(df[words][i]):
-                    if df[words][i][j] in MILD_BOOSTER_WORDS:
-                        df[words + "_v"][i][j+1] = booster_modification(0.5, df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = booster_modification(0.5, df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = booster_modification(0.5, df[words + "_d"][i][j+1])
-                    elif df[words][i][j] in STRONG_BOOSTER_WORDS:
-                        df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
-                    elif df[words][i][j] in NEGATION_WORDS:
-                        df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
-                        df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
-                        df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
-                    j += 1
+                # j = 0
+                # while j+1 < len(df[words][i]):
+                #     if df[words][i][j] in MILD_BOOSTER_WORDS:
+                #         df[words + "_v"][i][j+1] = booster_modification(0.5, df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = booster_modification(0.5, df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = booster_modification(0.5, df[words + "_d"][i][j+1])
+                #     elif df[words][i][j] in STRONG_BOOSTER_WORDS:
+                #         df[words + "_v"][i][j+1] = booster_modification(1, df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = booster_modification(1, df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = booster_modification(1, df[words + "_d"][i][j+1])
+                #     elif df[words][i][j] in NEGATION_WORDS:
+                #         df[words + "_v"][i][j+1] = negation_modification(df[words][i][j], df[words + "_v"][i][j+1])
+                #         df[words + "_a"][i][j+1] = negation_modification(df[words][i][j], df[words + "_a"][i][j+1])
+                #         df[words + "_d"][i][j+1] = negation_modification(df[words][i][j], df[words + "_d"][i][j+1])
+                #     j += 1
                 if words == "opinion":
                     k = 0
                     while k < len(df[words][i]):
@@ -538,15 +571,18 @@ def return_sys_arguments(args):
 
 
 def main(df_part, name):
-    df_vad_scores = calculate_vad_scores_1(df_part)
+    df_vad_scores = make_booster_modifications_before_calculation(df_part)
+    df_vad_scores = calculate_vad_scores_1(df_vad_scores)
     df_vad_scores = calculate_vad_scores_2(df_vad_scores)
     df_vad_scores = calculate_vad_scores_3(df_vad_scores)
     df_vad_scores = calculate_vad_scores_4(df_vad_scores)
     # df_vad_scores = calculate_vad_scores_as_mean_for_opinions(df_part)
     # df_vad_scores = calculate_vad_scores_as_mean_for_nouns(df_vad_scores)
-    save_file(df_vad_scores, name + "COMB_VAD_R")
-    # result = pd.concat([df_vad_scores, new_df], axis=1, sort=False)
+    # result1 = pd.concat([df_vad_scores1, df_vad_scores2], axis=1, sort=False)
+    # result2 = pd.concat([df_vad_scores3, df_vad_scores4], axis=1, sort=False)
+    # result3 = pd.concat([result1, result2], axis=1, sort=False)
     # result = separate_individual_words(result, True)
+    save_file(df_vad_scores, name + "COMB_VAD_R")
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
