@@ -32,6 +32,8 @@ def open_file(file, type):
         raw_table["related_v"] = raw_table["related_v"].map(ast.literal_eval)
         raw_table["related_a"] = raw_table["related_a"].map(ast.literal_eval)
         raw_table["related_d"] = raw_table["related_d"].map(ast.literal_eval)
+        raw_table["aspect_tags"] = raw_table["aspect_tags"].map(ast.literal_eval)
+        raw_table["opinion_tags"] = raw_table["opinion_tags"].map(ast.literal_eval)
     return raw_table
 
 
@@ -380,9 +382,12 @@ def calculate_vad_scores_3(raw_df):
         a_assign = False
         d_assign = False
         # Assign the most polarized scores from the noun phrases
-        aspe_v_polar = max(aspe_v, key=lambda x: abs(x - 5))
-        aspe_a_polar = max(aspe_a, key=lambda x: abs(x - 5))
-        aspe_d_polar = max(aspe_d, key=lambda x: abs(x - 5))
+        if len(aspe_v) != 0:
+            aspe_v_polar = max(aspe_v, key=lambda x: abs(x - 5))
+        if len(aspe_a) != 0:
+            aspe_a_polar = max(aspe_a, key=lambda x: abs(x - 5))
+        if len(aspe_d) != 0:
+            aspe_d_polar = max(aspe_d, key=lambda x: abs(x - 5))
 
         # Valence-score calculation starts
         if len(opin_v) == 0:
@@ -572,7 +577,7 @@ def return_sys_arguments(args):
 
 def reformat_output_file(raw_df):
     df = raw_df[
-        ['aspect', 'opinion', "aspect_v1", "aspect_v2", "aspect_v3", "aspect_v4", "aspect_a1", "aspect_a2", "aspect_a3", "aspect_a4", "aspect_d1",  "aspect_d2", "aspect_d3", "aspect_d4",'original_text']]
+        ["aspect", "opinion", "aspect_v1", "aspect_v2", "aspect_v3", "aspect_v4", "aspect_a1", "aspect_a2", "aspect_a3", "aspect_a4", "aspect_d1",  "aspect_d2", "aspect_d3", "aspect_d4","original_text", "aspect_tags", "opinion_tags"]]
     return df
 
 def main(df_part, name):
