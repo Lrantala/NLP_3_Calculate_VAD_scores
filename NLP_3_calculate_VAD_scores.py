@@ -577,7 +577,7 @@ def return_sys_arguments(args):
 
 def reformat_output_file(raw_df):
     df = raw_df[
-        ["aspect", "opinion", "aspect_v1", "aspect_v2", "aspect_v3", "aspect_v4", "aspect_a1", "aspect_a2", "aspect_a3", "aspect_a4", "aspect_d1",  "aspect_d2", "aspect_d3", "aspect_d4","original_text", "aspect_tags", "opinion_tags"]]
+        ["aspect", "opinion", "aspect_v1", "aspect_v2", "aspect_v3", "aspect_v4", "aspect_a1", "aspect_a2", "aspect_a3", "aspect_a4", "aspect_d1",  "aspect_d2", "aspect_d3", "aspect_d4","original_text", "aspect_tags", "opinion_tags", "original_lemmas"]]
     return df
 
 def main(df_part, name):
